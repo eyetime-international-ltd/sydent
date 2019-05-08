@@ -145,7 +145,7 @@ class ThreepidBinder:
     def _pickServer(self, host):
         servers = yield self._fetchServers(host)
         if not servers:
-            defer.returnValue("%s:8448" % (host,))
+            defer.returnValue("%s" % (host,))
 
         min_priority = servers[0].priority
         weight_indexes = list(
