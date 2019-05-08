@@ -23,6 +23,8 @@ import signedjson.sign
 from sydent.db.invite_tokens import JoinTokenStore
 
 from sydent.db.threepid_associations import LocalAssociationStore
+from sydent.http.federation_tls_options import ClientTLSOptionsFactory
+from sydent.http.matrixfederationagent import MatrixFederationAgent
 
 from sydent.util import time_msec
 from sydent.threepid.signer import Signer
@@ -107,7 +109,13 @@ class ThreepidBinder:
 
         logger.info("Making bind callback to: %s", callbackUrl)
         # TODO: Not be woefully insecure
-        agent = Agent(reactor, InsecureInterceptableContextFactory())
+        # agent = Agent(reactor, InsecureInterceptableContextFactory())
+
+        agent = MatrixFederationAgent(
+            reactor,
+            ClientTLSOptionsFactory(self.sydent.cfg),
+        )
+
         reqDeferred = agent.request(
             "POST",
             callbackUrl.encode("utf8"),
