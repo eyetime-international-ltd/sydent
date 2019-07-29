@@ -82,7 +82,7 @@ class EmailValidateCodeServlet(Resource):
     def render_GET(self, request):
         resp = self.do_validate_request(request)
         if 'success' in resp and resp['success']:
-            msg = "Verification successful! Please return to your Matrix client to continue."
+            msg = "Your eyetime account has now been successfully activated. Simply return to the app to start using eyetime."
             if 'nextLink' in request.args:
                 next_link = request.args['nextLink'][0]
                 if not next_link.startswith("file:///"):
