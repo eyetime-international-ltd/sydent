@@ -21,6 +21,7 @@ import logging.handlers
 import os
 
 import twisted.internet.reactor
+from twisted.internet import task
 from twisted.python import log
 
 from db.sqlitedb import SqliteDatabase
@@ -51,6 +52,8 @@ from http.servlets.getvalidated3pidservlet import GetValidated3pidServlet
 from http.servlets.store_invite_servlet import StoreInviteServlet
 from http.servlets.v1_servlet import V1Servlet
 
+from db.valsession import ThreePidValSessionStore
+
 from threepid.bind import ThreepidBinder
 
 from replication.pusher import Pusher
@@ -63,6 +66,14 @@ CONFIG_DEFAULTS = {
         'log.path': '',
         'log.level': 'INFO',
         'pidfile.path': 'sydent.pid',
+
+        # The following can be added to your local config file to enable prometheus
+        # support.
+        # 'prometheus_port': '8080',  # The port to serve metrics on
+        # 'prometheus_addr': '',  # The address to bind to. Empty string means bind to all.
+
+        # The following can be added to your local config file to enable sentry support.
+        # 'sentry_dsn': 'https://...'  # The DSN has configured in the sentry instance project.
     },
     'db': {
         'db.file': 'sydent.db',
@@ -147,6 +158,22 @@ class Sydent:
             self.cfg.set('general', 'server.name', self.server_name)
             self.save_config()
 
+        if self.cfg.has_option("general", "sentry_dsn"):
+            # Only import and start sentry SDK if configured.
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=self.cfg.get("general", "sentry_dsn"),
+            )
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag("sydent_server_name", self.server_name)
+
+        if self.cfg.has_option("general", "prometheus_port"):
+            import prometheus_client
+            prometheus_client.start_http_server(
+                port=self.cfg.getint("general", "prometheus_port"),
+                addr=self.cfg.get("general", "prometheus_addr"),
+            )
+
         self.validators = Validators()
         self.validators.email = EmailValidator(self)
         self.validators.msisdn = MsisdnValidator(self)
@@ -184,6 +211,11 @@ class Sydent:
         self.replicationHttpsClient = ReplicationHttpsClient(self)
 
         self.pusher = Pusher(self)
+
+        # A dedicated validation session store just to clean up old sessions every N minutes
+        self.cleanupValSession = ThreePidValSessionStore(self)
+        cb = task.LoopingCall(self.cleanupValSession.deleteOldSessions)
+        cb.start(10 * 60.0)
 
     def save_config(self):
         fp = open(self.config_file, 'w')
