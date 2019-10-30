@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 Travis Ralston
-# Copyright 2018 New Vector Ltd
+# Copyright 2019 The Matrix.org Foundation C.I.C.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,23 +16,39 @@
 
 from twisted.web.resource import Resource
 
-from sydent.http.servlets import jsonwrap, send_cors
+import logging
+
+from sydent.http.servlets import get_args, jsonwrap, send_cors, MatrixRestError
+from sydent.db.accounts import AccountStore
+from sydent.http.auth import authIfV2, tokenFromRequest
 
 
-class V1Servlet(Resource):
-    isLeaf = False
+logger = logging.getLogger(__name__)
+
+
+class LogoutServlet(Resource):
+    isLeaf = True
 
     def __init__(self, syd):
-        Resource.__init__(self)
         self.sydent = syd
 
     @jsonwrap
-    def render_GET(self, request):
+    def render_POST(self, request):
+        """
+        Invalidate the given access token
+        """
         send_cors(request)
-        request.setResponseCode(200)
+
+        account = authIfV2(self.sydent, request, False)
+
+        token = tokenFromRequest(request)
+
+        accountStore = AccountStore(self.sydent)
+        accountStore.delToken(token)
         return {}
 
     def render_OPTIONS(self, request):
         send_cors(request)
         request.setResponseCode(200)
         return b''
+

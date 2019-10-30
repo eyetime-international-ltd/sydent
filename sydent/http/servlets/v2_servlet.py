@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 Travis Ralston
-# Copyright 2018 New Vector Ltd
+# Copyright 2019 The Matrix.org Foundation C.I.C.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +19,7 @@ from twisted.web.resource import Resource
 from sydent.http.servlets import jsonwrap, send_cors
 
 
-class V1Servlet(Resource):
+class V2Servlet(Resource):
     isLeaf = False
 
     def __init__(self, syd):

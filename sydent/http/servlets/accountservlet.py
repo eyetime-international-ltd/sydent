@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 Travis Ralston
-# Copyright 2018 New Vector Ltd
+# Copyright 2019 The Matrix.org Foundation C.I.C.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +16,12 @@
 
 from twisted.web.resource import Resource
 
-from sydent.http.servlets import jsonwrap, send_cors
+from sydent.http.servlets import get_args, jsonwrap, send_cors
+from sydent.users.tokens import issueToken
+from sydent.http.auth import authIfV2
 
 
-class V1Servlet(Resource):
+class AccountServlet(Resource):
     isLeaf = False
 
     def __init__(self, syd):
@@ -29,11 +30,20 @@ class V1Servlet(Resource):
 
     @jsonwrap
     def render_GET(self, request):
+        """
+        Return information about the user's account
+        (essentially just a 'who am i')
+        """
         send_cors(request)
-        request.setResponseCode(200)
-        return {}
+
+        account = authIfV2(self.sydent, request)
+
+        return {
+            "user_id": account.userId,
+        }
 
     def render_OPTIONS(self, request):
         send_cors(request)
         request.setResponseCode(200)
         return b''
+

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-
-# Copyright 2018 Travis Ralston
-# Copyright 2018 New Vector Ltd
+# Copyright 2019 The Matrix.org Foundation C.I.C.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,25 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from twisted.web.resource import Resource
+import logging
+import time
 
-from sydent.http.servlets import jsonwrap, send_cors
+from sydent.util.tokenutils import generateAlphanumericTokenOfLength
+from sydent.db.accounts import AccountStore
 
+logger = logging.getLogger(__name__)
 
-class V1Servlet(Resource):
-    isLeaf = False
+def issueToken(sydent, user_id):
+    accountStore = AccountStore(sydent)
+    accountStore.storeAccount(user_id, int(time.time() * 1000), None)
 
-    def __init__(self, syd):
-        Resource.__init__(self)
-        self.sydent = syd
+    new_token = generateAlphanumericTokenOfLength(64)
+    accountStore.addToken(user_id, new_token)
 
-    @jsonwrap
-    def render_GET(self, request):
-        send_cors(request)
-        request.setResponseCode(200)
-        return {}
-
-    def render_OPTIONS(self, request):
-        send_cors(request)
-        request.setResponseCode(200)
-        return b''
+    return new_token

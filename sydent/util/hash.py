@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 Travis Ralston
-# Copyright 2018 New Vector Ltd
+# Copyright 2019 The Matrix.org Foundation C.I.C.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,25 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from twisted.web.resource import Resource
+import hashlib
+import unpaddedbase64
 
-from sydent.http.servlets import jsonwrap, send_cors
 
+def sha256_and_url_safe_base64(input_text):
+    """SHA256 hash an input string, encode the digest as url-safe base64, and
+    return
 
-class V1Servlet(Resource):
-    isLeaf = False
+    :param input_text: string to hash
+    :type input_text: str
 
-    def __init__(self, syd):
-        Resource.__init__(self)
-        self.sydent = syd
+    :returns a sha256 hashed and url-safe base64 encoded digest
+    :rtype: str
+    """
+    digest = hashlib.sha256(input_text.encode()).digest()
+    return unpaddedbase64.encode_base64(digest, urlsafe=True)
 
-    @jsonwrap
-    def render_GET(self, request):
-        send_cors(request)
-        request.setResponseCode(200)
-        return {}
-
-    def render_OPTIONS(self, request):
-        send_cors(request)
-        request.setResponseCode(200)
-        return b''

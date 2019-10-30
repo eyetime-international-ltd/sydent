@@ -24,6 +24,7 @@ from sydent.validators import (
 )
 
 from sydent.http.servlets import get_args, jsonwrap, send_cors
+from sydent.http.auth import authIfV2
 
 
 logger = logging.getLogger(__name__)
@@ -39,10 +40,9 @@ class MsisdnRequestCodeServlet(Resource):
     def render_POST(self, request):
         send_cors(request)
 
-        error, args = get_args(request, ('phone_number', 'country', 'client_secret', 'send_attempt'))
-        if error:
-            request.setResponseCode(400)
-            return error
+        authIfV2(self.sydent, request)
+
+        args = get_args(request, ('phone_number', 'country', 'client_secret', 'send_attempt'))
 
         raw_phone_number = args['phone_number']
         country = args['country']
@@ -89,11 +89,10 @@ class MsisdnRequestCodeServlet(Resource):
 
         return resp
 
-    @jsonwrap
     def render_OPTIONS(self, request):
         send_cors(request)
         request.setResponseCode(200)
-        return {}
+        return b''
 
 
 class MsisdnValidateCodeServlet(Resource):
@@ -128,9 +127,9 @@ class MsisdnValidateCodeServlet(Resource):
     def render_POST(self, request):
         send_cors(request)
 
-        err, args = get_args(request, ('token', 'sid', 'client_secret'))
-        if err:
-            return err
+        authIfV2(self.sydent, request)
+
+        args = get_args(request, ('token', 'sid', 'client_secret'))
 
         return self.do_validate_request(args)
 
@@ -153,8 +152,7 @@ class MsisdnValidateCodeServlet(Resource):
 
         return resp
 
-    @jsonwrap
     def render_OPTIONS(self, request):
         send_cors(request)
         request.setResponseCode(200)
-        return {}
+        return b''
